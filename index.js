@@ -63,7 +63,7 @@ class Location {
 
 class Store {
 
-    static NewStore(store_name, city_name, state_name, balance){
+    static newStore(store_name, city_name, state_name, balance){
         //Check store, city, state names are strings
         if(!store_name instanceof String){
             console.error("Store.newStore() store_name is not a string:", store_name);
@@ -320,9 +320,9 @@ function checkUPC(num){
 //! CREATE STORES
 // Generate 3 different stores, each in a different state.
 
-let Store1 = Store.NewStore("Marty's Spoon Shop", "MartyTown", "Iowa", 126);
-let Store2 = Store.NewStore("Marky Mark's Funky Emporium", "Boston", "Massachusetts", 195);
-let Store3 = Store.NewStore("Generic Shop, Nothing Suspicious", "Albuquerque", "New Mexico", 101);
+let Store1 = Store.newStore("Marty's Spoon Shop", "MartyTown", "Iowa", 126);
+let Store2 = Store.newStore("Marky Mark's Funky Emporium", "Boston", "Massachusetts", 195);
+let Store3 = Store.newStore("Generic Shop, Nothing Suspicious", "Albuquerque", "New Mexico", 101);
 
 //! Inventory
 let item1 = Item.newItem(newUPC(), "Fancy Spoon", "Kitchenware", 19.00, 1);
