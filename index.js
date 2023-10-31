@@ -64,13 +64,33 @@ class Location {
 class Store {
 
     static NewStore(store_name, city_name, state_name, balance){
-        state_data = salesTax.find(entry => entry.state === state_name);
+        //Check store, city, state names are strings
+        if(!store_name instanceof String){
+            console.error("Store.newStore() store_name is not a string:", store_name);
+            return undefined;
+        }
+        if(!city_name instanceof String){
+            console.error("Store.newStore() city_name is not a string:", city_name);
+            return undefined;
+        }
+        if(!state_name instanceof String){
+            console.error("Store.newStore() state_name is not a string:", state_name);
+            return undefined;
+        }
+        //check if balance valid, for now just a positive number check, maybe do cash later
+        if(!balance instanceof Number || balance < 0){
+            console.error("Store.newStore() balance needs to be a positive number:", balance);
+            return undefined;
+        }
+        //check if state name exists in salesTax array
+        let state_data = salesTax.find(entry => entry.state === state_name);
         if(state_data === undefined){
             console.error("Invalid state name", state_name, "not found in salesTax array.");
             return undefined;
         }
-        location = new Location(city_name, state_name);
-        return Store(store_name, location, state_data.tax, balance);
+        //All good, make the object
+        let location = new Location(city_name, state_name);
+        return new Store(store_name, location, state_data.tax, balance);
     }
 
     constructor(name, location, sales_tax, balance) {
@@ -78,7 +98,7 @@ class Store {
         this.location = location;
         this.sales_tax = sales_tax;
 
-        this.inventory = {};//store this as a dict i guess, makes sense if sorted by id
+        this.inventory = {};//store this as a dict i guess, makes sense if sorted by id for more efficiently looking up items
         this.balance = balance;
         this.expenses = 0;
         this.profit = 0;
@@ -88,8 +108,8 @@ class Store {
     addToInventory(newItem, markup) {
         if(!(newItem instanceof Item)||(typeof markup !== 'number')){
             console.error('Store.addToInventory() Parameter errors:',
-                    `\nnewItem: ${newItem}`,
-                    `\nmarkup: ${markup}`);
+                    `\nnewItem:`, newItem,
+                    `\nmarkup:`, markup);
             return false;
         }
         let price = newItem.getFullPurchasePrice();
@@ -98,14 +118,18 @@ class Store {
                     `\nItem ${newItem.name}: ${price} (unit price: ${newItem.purchase_price}, quantity: ${newItem.quantity})`);
             return false;
         }
-        balance -= price;
+        this.balance -= price;
         this.expenses += price;
-        if (inventory[upc] !== undefined){
-            inventory[upc].quantity += newItem.quantity;
+        if (this.inventory[newItem.getUPC()] !== undefined){
+            this.inventory[newItem.getUPC()].addQuantity(newItem.getQuantity());
+            // console.log("Adding known item to inventory:", newItem.getUPC());
+            // console.log("newItem name:", newItem.name);
+            // console.log("newItem quantity", newItem.quantity);
+            // console.log("new total quantity", this.inventory[newItem.getUPC()].getQuantity());
         }
         else {
             newItem.setMarketPrice(markup);
-            inventory[newItem.upc] = newItem;
+            this.inventory[newItem.upc] = newItem;
         }
     }
 
@@ -135,6 +159,41 @@ class Store {
 }
 
 class Item{
+    //Write factory
+    static newItem(upc, name, type, purchase_price, quantity){
+        if(!Number.isInteger(upc) || !(upc.toString().length === 12) || (upc < 0)){
+            //Maybe add checking to this to determine if a valid upc, not really following the math explanation for the check digit
+            console.error("Item.newItem() upc should be a 12 digit integer: ", upc);
+            console.log("Length:",upc.toString().length);
+            console.log("not int:",!Number.isInteger(upc),"is not length 12:",!(String.toString(upc).length === 12) , "less than 0:", (upc < 0))
+            return undefined;
+        }
+
+        //Check string inputs
+        if(!name instanceof String){
+            console.error("Item.newItem() name is not a string:", name);
+            return undefined;
+        }
+
+        if(!type instanceof String){
+            console.error("Item.newItem() type is not a string", type);
+            return undefined;
+        }
+
+        //check purchase price is positive number, and quantity is a positive int
+        //could extend purchase_price to make sure it is valid price eg decimal with 2 digits
+        if(!purchase_price instanceof Number || purchase_price < 0){
+            console.error("Item.newItem() purchase price must be a number > 0", purchase_price);
+            return undefined;
+        }
+
+        if(!Number.isInteger(quantity) || quantity < 0){
+            console.error("Item.newItem() quantity must be integer greater than 0", quantity);
+            return undefined;
+        }
+        return new Item(upc,name,type,purchase_price, quantity);
+    }
+
     constructor(upc, name, type, purchase_price, quantity = 1) {
         this.upc= upc;
         this.name = name;
@@ -189,21 +248,109 @@ class Item{
         let market_price = this.getSalePrice(quantity);
         return [purchase_price, market_price];
     }
+
+    getUPC(){
+        return this.upc;
+    }
+
+    getQuantity(){
+        return this.quantity;
+    }
+
+    addQuantity(quantity){
+        this.quantity += quantity;
+    }
 }
+
+let usedUPC = [];
+
+function randomPositiveInteger(digits = 1){
+    //default range between 0 and 1
+    return Math.floor(Math.random() * 10**(digits));
+}
+
+function sumEveryOtherDigit(numberStr, offset = 0){
+    let i = offset;
+    let sum = 0;
+    while(i < numberStr.length){
+        sum += Number.parseInt(numberStr[i]);
+        i += 2;
+    }
+    return sum;
+}
+
+function randomUPC(){
+    let randNum = randomPositiveInteger(11);
+    let sumOdd = sumEveryOtherDigit(randNum.toString(), 0);
+    let sumEven = sumEveryOtherDigit(randNum.toString(), 1);
+    let fullSum = sumOdd * 3 + sumEven;
+    let checkDigit = Math.ceil(fullSum/10) * 10 - fullSum;
+    return randNum * 10 + checkDigit;
+}
+
+function newUPC(){
+    let newNum;
+    do{
+        newNum = randomUPC();
+    }
+    while(usedUPC.includes(newNum)|| newNum.toString().length !== 12);
+    // console.log("New UPC:", newNum);
+    usedUPC.push(newNum);
+    return newNum;
+}
+
+
+
 
 //! CREATE STORES
 // Generate 3 different stores, each in a different state.
 
-//! Inventory
+let Store1 = Store.NewStore("Marty's Spoon Shop", "MartyTown", "Iowa", 126);
+let Store2 = Store.NewStore("Marky Mark's Funky Emporium", "Boston", "Massachusetts", 195);
+let Store3 = Store.NewStore("Generic Shop, Nothing Suspicious", "Albuquerque", "New Mexico", 101);
 
+//! Inventory
+let item1 = Item.newItem(newUPC(), "Fancy Spoon", "Kitchenware", 19.00, 1);
+let item2 = Item.newItem(newUPC(), "Old Guitar", "Music", 50.75, 1);
+let item3 = Item.newItem(newUPC(), "Intro To Javascript", "Book", 25.00, 1);
+let item4 = Item.newItem(newUPC(), "Slightly used Espresso Machine", "Kitchenware", 47.00, 1);
+let item5 = Item.newItem(newUPC(), "Novelty Paperweight", "Other", 5.00, 1);
+
+let item7 = Item.newItem(newUPC(), "Gigantic Bean Bag Chair", "Houseware", 30.00, 1);
+let item8 = Item.newItem(newUPC(), "Javascript For Dummies", "Book", 24.73, 1);
+
+//Quantity over 1-
+let item9 = Item.newItem(newUPC(), "Low Quality Spoon", "Kitchenware", 5.00, 5);
+let item10 = Item.newItem(newUPC(), "Shiny Rocks", "Other", 0,50, 20);
+
+//Duplicates
+let item6 = Item.newItem(newUPC(), "Average Spoon", "Kitchenware", 10.00, 1);
+let item11 = Item.newItem(item6.getUPC(), "Average Spoon", "Kitchenware", 10.00, 1);
+let item12 = Item.newItem(item6.getUPC(), "Average Spoon", "Kitchenware", 10.00, 1);
 
 //! Stocking
 
 //* First Store
+let markup = .15
+Store1.addToInventory(item1, markup);
+Store1.addToInventory(item6, markup);
+Store1.addToInventory(item11, markup);
+Store1.addToInventory(item12, markup);
+Store1.addToInventory(item9, markup);
 
 //* Second Store
+markup = .2;
+Store2.addToInventory(item2, markup);
+Store2.addToInventory(item5, markup);
+Store2.addToInventory(item4, markup);
+Store2.addToInventory(item10, markup);
+
 
 //* Third Store
+markup = .4;
+Store3.addToInventory(item8, markup);
+Store3.addToInventory(item7, markup);
+Store3.addToInventory(item3, markup);
 
 //! Selling
 
@@ -217,3 +364,7 @@ class Item{
 /* 
     Simply console log each store to check the completed details.
 */
+
+console.log(Store1);
+console.log(Store2);
+console.log(Store3);
