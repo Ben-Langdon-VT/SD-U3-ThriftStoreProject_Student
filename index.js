@@ -134,14 +134,22 @@ class Store {
     }
 
     sellItemById(itemId, quantity) {
-        targetItem = this.inventory[itemId];
-        if(! targetItem instanceof Item){
-            console.error("Store.sellItem() error: unable to find itemId", itemId);
+        //Is itemId valid
+        if(!Number.isInteger(itemId) || !checkUPC(itemId)){
+            console.error("Store.sellItemById(): Not valid UPC code:", itemId);
             return false;
         }
-        if(!targetItem instanceof Item){
-            console.error("Store.sellItem() error: item at item id not class Item\n", targetItem);
-            return false
+        //Is Quantity valid
+        if(!Number.isInteger(quantity) || quantity < 0){
+            console.error("Store.sellItemById(): invalid parameter quantity", quantity);
+            return false;
+        }
+
+        let targetItem = this.inventory[itemId];
+        //Is there an item with quantity greater than 1 at this upc
+        if((! targetItem instanceof Item)||(targetItem.getQuantity() === 0)){
+            console.log("Item: ", itemId, "is not in stock.");
+            return false;
         }
 
         let [purchase_price, market_price] = targetItem.buyQuantity(quantity);
@@ -150,10 +158,11 @@ class Store {
         if((purchase_price===false) || (market_price === false)){
             return false;
         }
-        tax = market_price * this.sales_tax;
+        let tax = (market_price * this.sales_tax).toFixed(2);
         this.balance += market_price - tax;
         this.profit += market_price - purchase_price - tax;
-        this.paid_tax += tax;
+        this.paid_tax += tax;-
+        console.log("Bought",targetItem.name,", Quantity:", quantity);
         return true;
     }
 }
@@ -198,7 +207,7 @@ class Item{
         this.upc= upc;
         this.name = name;
         this.type = type;
-        this.purchase_price = purchase_price;
+        this.purchase_price = purchase_price.toFixed(2);
         this.quantity = quantity;
         this.market_price;
     }
@@ -207,7 +216,7 @@ class Item{
     }
 
     setMarketPrice(markup) {
-        this.market_price = this.purchase_price * (1 + markup);
+        this.market_price = (this.purchase_price * (1 + markup)).toFixed(2);
     }
 
     hasQuantity(quantity) {
@@ -361,6 +370,9 @@ Store3.addToInventory(item3, markup);
 //! Selling
 
 //* First Store
+Store1.sellItemById(item1.getUPC(), 1);
+Store1.sellItemById(item6.getUPC(), 2);
+Store1.sellItemById(item6.getUPC(), 2);
 
 //* Second Store
 
