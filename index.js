@@ -161,11 +161,11 @@ class Store {
 class Item{
     //Write factory
     static newItem(upc, name, type, purchase_price, quantity){
-        if(!Number.isInteger(upc) || !(upc.toString().length === 12) || (upc < 0)){
+        if(!Number.isInteger(upc) || !checkUPC(upc)){
             //Maybe add checking to this to determine if a valid upc, not really following the math explanation for the check digit
             console.error("Item.newItem() upc should be a 12 digit integer: ", upc);
-            console.log("Length:",upc.toString().length);
-            console.log("not int:",!Number.isInteger(upc),"is not length 12:",!(String.toString(upc).length === 12) , "less than 0:", (upc < 0))
+            console.error("Length:",upc.toString().length);
+            console.error("!heckUPC():", !checkUPC());
             return undefined;
         }
 
@@ -276,22 +276,21 @@ function sumEveryOtherDigit(numberStr, offset = 0){
         sum += Number.parseInt(numberStr[i]);
         i += 2;
     }
-    return sum;
+    return sum; 
 }
 
-function randomUPC(){
-    let randNum = randomPositiveInteger(11);
-    let sumOdd = sumEveryOtherDigit(randNum.toString(), 0);
-    let sumEven = sumEveryOtherDigit(randNum.toString(), 1);
+function addCheckDigitUPC(num){
+    let sumOdd = sumEveryOtherDigit(num.toString(), 0);
+    let sumEven = sumEveryOtherDigit(num.toString(), 1);
     let fullSum = sumOdd * 3 + sumEven;
     let checkDigit = Math.ceil(fullSum/10) * 10 - fullSum;
-    return randNum * 10 + checkDigit;
+    return num * 10 + checkDigit;
 }
 
 function newUPC(){
-    let newNum;
+    let newNum = randomPositiveInteger(11);
     do{
-        newNum = randomUPC();
+        newNum = addCheckDigitUPC(newNum);
     }
     while(usedUPC.includes(newNum)|| newNum.toString().length !== 12);
     // console.log("New UPC:", newNum);
@@ -299,8 +298,15 @@ function newUPC(){
     return newNum;
 }
 
-
-
+function checkUPC(num){
+    let rawNum = Math.floor(num/10);
+    if(addCheckDigitUPC(rawNum)===num){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
 
 //! CREATE STORES
 // Generate 3 different stores, each in a different state.
