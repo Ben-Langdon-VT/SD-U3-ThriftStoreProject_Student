@@ -132,7 +132,7 @@ class Store {
         this.balance = RoundToDollar(this.balance);
         this.expenses = RoundToDollar(this.balance);
 
-        console.log(this.expenses);
+        // console.log(this.expenses);
         if (this.inventory[newItem.getUPC()] !== undefined){
             this.inventory[newItem.getUPC()].addQuantity(newItem.getQuantity());
             // console.log("Adding known item to inventory:", newItem.getUPC());
@@ -160,7 +160,7 @@ class Store {
 
         let targetItem = this.inventory[itemId];
         //Is there an item with quantity greater than 1 at this upc
-        if((! targetItem instanceof Item)||(targetItem.getQuantity() === 0)){
+        if((targetItem === undefined)||(targetItem.getQuantity() === 0)){
             console.log("Item: ", itemId, "is not in stock.");
             return false;
         }
@@ -390,19 +390,25 @@ Store3.addToInventory(item3, markup);
 //! Selling
 
 //* First Store
+
 Store1.sellItemById(item1.getUPC(), 1);
-Store1.sellItemById(item6.getUPC(), 2);
-Store1.sellItemById(item6.getUPC(), 2);
 
+Store1.sellItemById(item6.getUPC(), 2);
+Store1.sellItemById(item6.getUPC(), 2);//Selling more than i have in stock, only 1 left in stock
+Store1.sellItemById(item6.getUPC(),1);
 //* Second Store
-
+Store2.sellItemById(item6.getUPC(),1);//Selling item that isn't in stock
+Store2.sellItemById(item2.getUPC(),1);
+Store2.sellItemById(item5.getUPC(),1);
+Store2.sellItemById(item10.getUPC(),5);
 //* Third Store
+Store3.sellItemById(item3.getUPC(),1);
 
 //! Testing
 /* 
     Simply console log each store to check the completed details.
 */
-
+console.log("\n\n\n\n","Debug Store States:");
 console.log(Store1);
 console.log(Store2);
 console.log(Store3);
