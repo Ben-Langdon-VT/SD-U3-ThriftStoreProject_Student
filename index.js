@@ -61,6 +61,10 @@ class Location {
     }
 }
 
+function RoundToDollar(num){
+    return Math.round((num + Number.EPSILON)*100)/100;
+}
+
 class Store {
 
     static newStore(store_name, city_name, state_name, balance){
@@ -105,6 +109,7 @@ class Store {
         this.paid_tax = 0;
     }
 
+    
     addToInventory(newItem, markup) {
         if(!(newItem instanceof Item)||(typeof markup !== 'number')){
             console.error('Store.addToInventory() Parameter errors:',
@@ -118,8 +123,16 @@ class Store {
                     `\nItem ${newItem.name}: ${price} (unit price: ${newItem.purchase_price}, quantity: ${newItem.quantity})`);
             return false;
         }
+        
+
         this.balance -= price;
         this.expenses += price;
+
+        //Get values to round correctly when we put them in to stop getting weird values
+        this.balance = RoundToDollar(this.balance);
+        this.expenses = RoundToDollar(this.balance);
+
+        console.log(this.expenses);
         if (this.inventory[newItem.getUPC()] !== undefined){
             this.inventory[newItem.getUPC()].addQuantity(newItem.getQuantity());
             // console.log("Adding known item to inventory:", newItem.getUPC());
@@ -158,10 +171,15 @@ class Store {
         if((purchase_price===false) || (market_price === false)){
             return false;
         }
-        let tax = (market_price * this.sales_tax).toFixed(2);
+        let tax = RoundToDollar(market_price * this.sales_tax);
         this.balance += market_price - tax;
         this.profit += market_price - purchase_price - tax;
-        this.paid_tax += tax;-
+        this.paid_tax += tax;
+
+        //More fixing rounding errors
+        this.balance = RoundToDollar(this.balance);
+        this.profit = RoundToDollar(this.profit);
+        this.paid_tax = RoundToDollar(this.paid_tax);
         console.log("Bought",targetItem.name,", Quantity:", quantity);
         return true;
     }
@@ -254,7 +272,9 @@ class Item{
         }
         this.quantity -= quantity;
         let purchase_price = this.getPurchasePrice(quantity);
+        purchase_price = RoundToDollar(purchase_price);
         let market_price = this.getSalePrice(quantity);
+        market_price = RoundToDollar(market_price);
         return [purchase_price, market_price];
     }
 
@@ -336,7 +356,7 @@ let item8 = Item.newItem(newUPC(), "Javascript For Dummies", "Book", 24.73, 1);
 
 //Quantity over 1-
 let item9 = Item.newItem(newUPC(), "Low Quality Spoon", "Kitchenware", 5.00, 5);
-let item10 = Item.newItem(newUPC(), "Shiny Rocks", "Other", 0,50, 20);
+let item10 = Item.newItem(newUPC(), "Shiny Rocks", "Other", 0.50, 20);
 
 //Duplicates
 let item6 = Item.newItem(newUPC(), "Average Spoon", "Kitchenware", 10.00, 1);
